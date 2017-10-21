@@ -294,7 +294,8 @@ class PTSet(models.Model):
     def save(self, *args, **kwargs):
         if self.pk is None:
             self.uuid = get_form_id('PT')
-            super(PTSet, self).save(*args, **kwargs)
+            
+        super(PTSet, self).save(*args, **kwargs)
 
 class SHSet(models.Model):
     def toJSON(self):
@@ -330,7 +331,8 @@ class SHSet(models.Model):
     def save(self, *args, **kwargs):
         if self.pk is None:
             self.uuid = get_form_id('SH')
-            super(SHSet, self).save(*args, **kwargs)
+            
+        super(SHSet, self).save(*args, **kwargs)
     
 class CLSet(models.Model):
     def toJSON(self):
@@ -366,7 +368,8 @@ class CLSet(models.Model):
     def save(self, *args, **kwargs):
         if self.pk is None:
             self.uuid = get_form_id('CL')
-            super(CLSet, self).save(*args, **kwargs)
+            
+        super(CLSet, self).save(*args, **kwargs)
 
 class CCSet(models.Model):
     def toJSON(self):
@@ -403,5 +406,6 @@ class CCSet(models.Model):
     def save(self, *args, **kwargs):
         if self.pk is None:
             self.uuid = get_form_id('CC')
-            super(CCSet, self).save(*args, **kwargs)
+            
+        super(CCSet, self).save(*args, **kwargs)
         
