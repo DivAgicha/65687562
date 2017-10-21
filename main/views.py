@@ -750,12 +750,19 @@ class FormStatus(views.APIView):
             elif isUserId(id) and not request.POST.get('update'):
                 json_data['id'] = id
                 if request.POST.get('form_id'):
-                    FormStatusSet.objects.create(
-                        user_id = UserSet.objects.get(uuid=id),
-                        form_type_object = get_form(request.POST.get('form_id'))
-                    )
-                    
-                    json_data['result']['status'] = 'success'
+                    user = UserSet.objects.get(uuid=id)
+                    form = get_form(request.POST.get('form_id'))
+                    try:
+                        form.entries.get(user_id = user)
+                        
+                        json_data['result']['status'] = 'application already submitted'
+                    except Exception as e:
+                        FormStatusSet.objects.create(
+                            user_id = user,
+                            form_type_object = form
+                        )
+                        
+                        json_data['result']['status'] = 'success'
                     
                 else:
                     raise Exception('Insufficient data')
