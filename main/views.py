@@ -999,7 +999,7 @@ class Form(views.APIView):
                 #fetch single form data
                 form = get_form(request.GET.get('form_id'), ehub_id)
                 json_data['result']['count'] = 1
-                json_data['result']['data'] = form.toJSON()
+                json_data['result']['data'] = serialize_forms([form])
                 json_data['result']['status'] = 'success'
             elif request.GET.get('all') and request.GET.get('all').lower()=='true':
                 #fetch all forms data
