@@ -374,122 +374,6 @@ class Authenticate(views.APIView):
             
         return RESTResponse(json_data)
 
-# class Source(views.APIView):
-#     authentication_classes = [OAuth2Authentication]
-#     permission_classes = [TokenHasScope]
-#     required_scopes = ['read', 'write']
-#     
-#     def post(self, request, ehub_id):
-#         clear_screen()
-#         logger.info("registering source details...")
-#         
-#         json_data = {
-#             'id': ehub_id,
-#             'result': {
-#                 'type': 'creation',
-#                 'status': 'failed',
-#             }
-#         }
-#         
-#         try:
-#             if not request.POST.get('update'):
-#                 if request.POST.get('type') and request.POST.get('email') and request.POST.get('password') and request.POST.get('name'):
-#                     validate_email(request.POST.get('email'))
-#                     
-#                     if len(request.POST.get('password')) < 8:
-#                         raise Exception('Enter a valid password(length>=8)')
-#                     
-#                     logger.info('putting entry in DB')
-#                     
-#                     SourceSet.objects.create(
-#                             ehub_id = ehub_id,
-#                             type = get_type_code(request.POST.get('type').lower()),
-#                             email = request.POST.get('email').lower(),
-#                             password = make_password(request.POST.get('password')),
-#                             name = request.POST.get('name').lower()
-#                         )
-#                     
-#                     json_data['result']['status'] = 'success'
-#                     
-#                 else:
-#                     raise Exception('Please fill all the details to continue')
-#                     
-#             elif request.POST.get('update').lower()=='true':
-#                 json_data['result']['type'] = 'updation'
-#                 obj = SourceSet.objects.get(ehub_id__exact=ehub_id)
-#                 
-#                 if request.POST.get('password'):
-#                     if len(request.POST.get('password')) < 8:
-#                         raise Exception('Enter a valid password(length>=8)')
-#                     obj.password = make_password(request.POST.get('password'))
-#                 if request.POST.get('name'):
-#                     obj.name = request.POST.get('name').lower()
-#                 if request.POST.get('street'):
-#                     obj.street = request.POST.get('street').lower()
-#                 if request.POST.get('city'):
-#                     obj.city = request.POST.get('city').lower()
-#                 if request.POST.get('state'):
-#                     obj.state = request.POST.get('state').lower()
-#                 if request.POST.get('pincode'):
-#                     obj.pincode = int(request.POST.get('pincode'))
-#                 if request.POST.get('contact'):
-#                     obj.contact_num = request.POST.get('contact')
-#                 if request.POST.get('starting_year'):
-#                     obj.starting_year = int(request.POST.get('starting_year'))
-#                 if request.POST.get('board'):
-#                     obj.board = request.POST.get('board').lower()
-#                 if request.POST.get('affiliation'):
-#                     obj.affiliation = request.POST.get('affiliation').lower()
-#                 if request.POST.get('college_type'):
-#                     obj.college_type = request.POST.get('college_type').lower()
-#                 if request.POST.get('asr'):
-#                     obj.average_success_ratio = float(request.POST.get('asr'))
-#                 if request.POST.get('rating'):
-#                     obj.rating = float(request.POST.get('rating'))
-#                 if request.POST.get('description'):
-#                     obj.additional_info = request.POST.get('description')
-#                     
-#                 obj.save()
-#                 
-#                 json_data['result']['status'] = 'success'
-#                     
-#             else:
-#                 json_data['result']['type'] = 'unknown'
-#                 json_data['result']['exception'] = 'Invalid request'
-#                 
-#         except ValidationError:
-#             json_data['result']['exception'] = 'Enter a valid email address'
-#             logger.error('Exception: Enter a valid email address')
-#                     
-#         except Exception as e:
-#             json_data['result']['exception'] = str(e) if str(e).startswith('Enter a valid') or str(e).startswith('Please fill') else 'Error encountered'
-#             logger.error('Exception: '+str(e))
-#         
-#         return RESTResponse(json_data)
-#     
-#     def get(self, request, ehub_id):
-#         clear_screen()
-#         logger.info("fetching source details...")
-#         
-#         json_data = {
-#             'id': ehub_id,
-#             'result': {
-#                 'type': 'retrieval',
-#                 'status': 'failed',
-#             }
-#         }
-#         
-#         try:
-#             # json_data['result']['data'] = json.loads(serializers.serialize('json', [SourceSet.objects.get(ehub_id__exact=ehub_id), ]))[0]['fields']
-#             json_data['result']['data'] = SourceSet.objects.get(ehub_id__exact=ehub_id).toJSON()
-#             json_data['result']['status'] = 'success'
-#             
-#         except Exception as e:
-#             json_data['result']['exception'] = 'Error encountered'
-#             logger.error('Exception: '+str(e))
-#         
-#         return RESTResponse(json_data)
-
 class Source(views.APIView):
     authentication_classes = [OAuth2Authentication]
     permission_classes = [TokenHasScope]
@@ -747,26 +631,49 @@ class FormStatus(views.APIView):
                 else:
                     raise Exception('Insufficient data')
                 
-            elif isUserId(id) and not request.POST.get('update'):
+            elif isUserId(id):
                 json_data['id'] = id
                 if request.POST.get('form_id'):
                     user = UserSet.objects.get(uuid=id)
                     form = get_form(request.POST.get('form_id'))
                     
-                    if form.is_link_active:
-                        try:
-                            form.entries.get(user_id = user)
-                            
-                            json_data['result']['status'] = 'application already submitted'
-                        except Exception as e:
-                            FormStatusSet.objects.create(
-                                user_id = user,
-                                form_type_object = form
-                            )
-                            
-                            json_data['result']['status'] = 'success'
+                    try:
+                        if request.POST.get('entry_creation_date'):
+                            user_entry = form.entries.filter(user_id = user, datetime=request.POST.get('entry_creation_date')).order_by('-datetime')[0]
+                        else:
+                            user_entry = form.entries.filter(user_id = user).order_by('-datetime')[0]
+                    except Exception as e:
+                        user_entry = None
+                    
+                    if request.POST.get('update') and request.POST.get('update').lower()=='true':
+                        json_data['result']['type'] = 'updation'
+                        if user_entry:
+                            if request.POST.get('status') and request.POST.get('status').lower()=='c':
+                                if not user_entry.status.lower()=='w':
+                                    raise Exception('Invalid request: data has been tampered')
+                                json_data['result']['type'] = 'cancellation'
+                                user_entry.status = 'C'
+                                user_entry.save()
+                                json_data['result']['status'] = 'success'
+                            else:
+                                raise Exception('Enter a valid form status')
+                        else:
+                            raise Exception('Invalid request: user application form does not exist')
                     else:
-                        json_data['result']['status'] = 'form expired'
+                        if form.is_link_active:
+                            if user_entry and user_entry.status.lower()=='w':
+                                json_data['result']['status'] = 'application already submitted'
+                            elif user_entry and user_entry.status.lower()=='a':
+                                raise Exception('Invalid request: user application form already approved')
+                            else:
+                                FormStatusSet.objects.create(
+                                    user_id = user,
+                                    form_type_object = form
+                                )
+                                
+                                json_data['result']['status'] = 'success'
+                        else:
+                            json_data['result']['status'] = 'form expired'
                     
                 else:
                     raise Exception('Insufficient data')
