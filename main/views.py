@@ -752,17 +752,21 @@ class FormStatus(views.APIView):
                 if request.POST.get('form_id'):
                     user = UserSet.objects.get(uuid=id)
                     form = get_form(request.POST.get('form_id'))
-                    try:
-                        form.entries.get(user_id = user)
-                        
-                        json_data['result']['status'] = 'application already submitted'
-                    except Exception as e:
-                        FormStatusSet.objects.create(
-                            user_id = user,
-                            form_type_object = form
-                        )
-                        
-                        json_data['result']['status'] = 'success'
+                    
+                    if form.is_link_active:
+                        try:
+                            form.entries.get(user_id = user)
+                            
+                            json_data['result']['status'] = 'application already submitted'
+                        except Exception as e:
+                            FormStatusSet.objects.create(
+                                user_id = user,
+                                form_type_object = form
+                            )
+                            
+                            json_data['result']['status'] = 'success'
+                    else:
+                        json_data['result']['status'] = 'form expired'
                     
                 else:
                     raise Exception('Insufficient data')
